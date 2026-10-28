@@ -42,7 +42,7 @@ SummaryScreen::SummaryScreen(Model& model)
     mOBar[1]  = Draw::box(mOverview, 100, 174, 40, 8, Theme::kLift, 3);
     mOBar[2]  = Draw::box(mOverview, 140, 174, 40, 8, Theme::kTrack, 3);
     mOSplit   = Draw::label(mOverview, &poppins_regular_15, "", 40, 188, 160, LV_TEXT_ALIGN_CENTER, Theme::kTextDim);
-    mOHours   = Draw::label(mOverview, &poppins_regular_15, "", 60, 206, 120, LV_TEXT_ALIGN_CENTER, Theme::kTextDim);
+    mOHours   = Draw::label(mOverview, &poppins_regular_15, "", 45, 206, 150, LV_TEXT_ALIGN_CENTER, Theme::kTextDim);
 
     // -- Profile ------------------------------------------------------------
     mProfile = Draw::container(mRoot, 0, 0, 240, 240);
@@ -155,7 +155,8 @@ void SummaryScreen::refreshOverview()
     Fmt::clock(a, sizeof(a), log.startMin, mModel.clock12h());
     Fmt::clock(b, sizeof(b), log.endMin, mModel.clock12h());
     if (log.hrAvg) {
-        std::snprintf(line, sizeof(line), "%s - %s%sHR %u/%u", a, b, kDot, log.hrAvg, log.hrMax);
+        // Too narrow here for the hours as well; each run in the list has its time.
+        std::snprintf(line, sizeof(line), "HR %u%smax %u", log.hrAvg, kDot, log.hrMax);
     } else {
         std::snprintf(line, sizeof(line), "%s - %s", a, b);
     }

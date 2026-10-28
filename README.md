@@ -13,8 +13,8 @@ Entry for the [UNA App Development Competition – October 2026](https://unawatc
 **Demo video (90 s):** [`Docs/SkiDay_demo.mp4`](Docs/SkiDay_demo.mp4), a whole
 simulated day in the simulator.
 
-**Ready-made build:** [`Release/SkiDay_1.0.1.uapp`](Release/SkiDay_1.0.1.uapp)
-(for sideloading by USB) and [`Release/SkiDay_1.0.1_store.zip`](Release/SkiDay_1.0.1_store.zip)
+**Ready-made build:** [`Release/SkiDay_1.0.2.uapp`](Release/SkiDay_1.0.2.uapp)
+(for sideloading by USB) and [`Release/SkiDay_1.0.2_store.zip`](Release/SkiDay_1.0.2_store.zip)
 (the community-store upload package).
 
 > **Status:** works in the UNA simulator and passes 53 host unit tests, but has
