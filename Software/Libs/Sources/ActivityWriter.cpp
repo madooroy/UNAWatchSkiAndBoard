@@ -23,6 +23,7 @@ using DevFieldDef = fit::FitWriter::DevField;
 
 namespace
 {
+constexpr uint8_t kNoHr = 0xFF;   // FIT "invalid" for a uint8 field
 uint32_t invalidU32() { return static_cast<uint32_t>(fit::baseTypeInvalid(fit::BaseType::UInt32)); }
 
 uint16_t clampU16(float v)
@@ -94,7 +95,8 @@ void ActivityWriter::start(const AppInfo& info)
          fit::field::Lap::TotalDistance, fit::field::Lap::MessageIndex,
          fit::field::Lap::AvgSpeed, fit::field::Lap::MaxSpeed,
          fit::field::Lap::TotalAscent, fit::field::Lap::TotalDescent,
-         fit::field::Lap::Intensity, fit::field::Lap::LapTrigger});
+         fit::field::Lap::Intensity, fit::field::Lap::LapTrigger,
+         fit::field::Lap::AvgHeartRate, fit::field::Lap::MaxHeartRate});
     mFit->defineMessage(L_SESSION, fit::mesgNum(fit::MesgNum::Session),
         {fit::field::Session::Timestamp, fit::field::Session::StartTime,
          fit::field::Session::TotalElapsedTime, fit::field::Session::TotalTimerTime,
@@ -102,7 +104,8 @@ void ActivityWriter::start(const AppInfo& info)
          fit::field::Session::AvgSpeed, fit::field::Session::MaxSpeed,
          fit::field::Session::TotalAscent, fit::field::Session::TotalDescent,
          fit::field::Session::NumLaps, fit::field::Session::Sport,
-         fit::field::Session::SubSport});
+         fit::field::Session::SubSport,
+         fit::field::Session::AvgHeartRate, fit::field::Session::MaxHeartRate});
     mFit->defineMessage(L_ACTIVITY, fit::mesgNum(fit::MesgNum::Activity),
         {fit::field::Activity::Timestamp, fit::field::Activity::TotalTimerTime,
          fit::field::Activity::LocalTimestamp, fit::field::Activity::NumSessions});
@@ -123,21 +126,21 @@ void ActivityWriter::defineRecordMessages()
 
     mFit->defineMessage(L_RECORD, fit::mesgNum(fit::MesgNum::Record),
         {fit::field::Record::Timestamp, fit::field::Record::EnhancedAltitude,
-         fit::field::Record::EnhancedSpeed},
+         fit::field::Record::EnhancedSpeed, fit::field::Record::HeartRate},
         {motion1[0]});
     mFit->defineMessage(L_RECORD_G, fit::mesgNum(fit::MesgNum::Record),
         {fit::field::Record::Timestamp, fit::field::Record::PositionLat,
          fit::field::Record::PositionLong, fit::field::Record::EnhancedAltitude,
-         fit::field::Record::EnhancedSpeed},
+         fit::field::Record::EnhancedSpeed, fit::field::Record::HeartRate},
         {motion1[0]});
     mFit->defineMessage(L_RECORD_B, fit::mesgNum(fit::MesgNum::Record),
         {fit::field::Record::Timestamp, fit::field::Record::EnhancedAltitude,
-         fit::field::Record::EnhancedSpeed},
+         fit::field::Record::EnhancedSpeed, fit::field::Record::HeartRate},
         {batt3[0], batt3[1], batt3[2]});
     mFit->defineMessage(L_RECORD_GB, fit::mesgNum(fit::MesgNum::Record),
         {fit::field::Record::Timestamp, fit::field::Record::PositionLat,
          fit::field::Record::PositionLong, fit::field::Record::EnhancedAltitude,
-         fit::field::Record::EnhancedSpeed},
+         fit::field::Record::EnhancedSpeed, fit::field::Record::HeartRate},
         {batt3[0], batt3[1], batt3[2]});
 }
 
@@ -191,6 +194,7 @@ void ActivityWriter::addRecord(const RecordData& r)
     // enhanced_altitude (5 * (m + 500)), enhanced_speed (1000 * m/s)
     d.u32(r.hasAlt ? static_cast<uint32_t>((r.altitude + 500.0f) * 5.0f) : invalidU32());
     d.u32(r.hasSpeed ? static_cast<uint32_t>(r.speed * 1000.0f) : invalidU32());
+    d.u8(r.heartRate ? r.heartRate : kNoHr);
     d.u8(r.motion);
     if (r.hasBattery) {
         d.u8(r.batteryLevel).u16(r.batteryVoltage);
@@ -224,6 +228,8 @@ void ActivityWriter::addLap(const LapData& lap)
         .u16(clampU16(lap.descent))
         .u8(static_cast<uint8_t>(lap.intensity))
         .u8(static_cast<uint8_t>(lap.trigger))
+        .u8(lap.hrAvg ? lap.hrAvg : kNoHr)
+        .u8(lap.hrMax ? lap.hrMax : kNoHr)
         .write();
     ++mLapCounter;
 
@@ -254,6 +260,8 @@ bool ActivityWriter::stop(const DayData& day)
         .u16(mLapCounter)
         .u8(mSport)
         .u8(static_cast<uint8_t>(fit::SubSport::Generic))
+        .u8(day.hrAvg ? day.hrAvg : kNoHr)
+        .u8(day.hrMax ? day.hrMax : kNoHr)
         .write() && ok;
 
     ok = mFit->data(L_ACTIVITY)

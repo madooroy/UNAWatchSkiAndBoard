@@ -13,7 +13,8 @@
  *            or ride starts and runs on to the start of the next one, so the
  *            queue after a run is in that run's lap (timer and elapsed time
  *            say how much was moving).
- *   record   every second: position, altitude, speed, plus a developer field
+ *   record   every second: position, altitude, speed, heart rate (when the
+ *            optical sensor has a reading), plus a developer field
  *            "motion" (0 idle, 1 lift, 2 run) and the battery every 5 min.
  ******************************************************************************
  */
@@ -56,6 +57,7 @@ public:
         bool        hasSpeed   = false;
         float       speed      = 0.0f;   // m/s
         uint8_t     motion     = 0;      // Ski::Motion
+        uint8_t     heartRate  = 0;      // bpm, 0 = no reading
         bool        hasBattery = false;
         uint8_t     batteryLevel   = 0;  // %
         uint16_t    batteryVoltage = 0;  // mV
@@ -71,6 +73,8 @@ public:
         float       speedMax  = 0.0f;    // m/s
         float       ascent    = 0.0f;    // m
         float       descent   = 0.0f;    // m
+        uint8_t     hrAvg     = 0;       // bpm, 0 = none
+        uint8_t     hrMax     = 0;       // bpm, 0 = none
         SDK::Fit::Intensity  intensity = SDK::Fit::Intensity::Active;
         SDK::Fit::LapTrigger trigger   = SDK::Fit::LapTrigger::Manual;
     };
@@ -85,6 +89,8 @@ public:
         float       speedMax  = 0.0f;    // m/s
         float       ascent    = 0.0f;    // lift vertical, m
         float       descent   = 0.0f;    // skied vertical, m
+        uint8_t     hrAvg     = 0;       // bpm, 0 = none
+        uint8_t     hrMax     = 0;       // bpm, 0 = none
         uint16_t    runs      = 0;
     };
 

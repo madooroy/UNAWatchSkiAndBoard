@@ -29,6 +29,7 @@
 
 #include "ActivityWriter.hpp"
 #include "Commands.hpp"
+#include "Ski/HeartRateLog.hpp"
 #include "Ski/RunTracker.hpp"
 #include "Ski/SkiDaySim.hpp"
 #include "Ski/StormWatch.hpp"
@@ -67,6 +68,7 @@ private:
     SDK::Sensor::Connection mBatteryLevel;
     SDK::Sensor::Connection mBatteryMetrics;
     SDK::Sensor::Connection mWristMotion;
+    SDK::Sensor::Connection mHeartRate;
     bool mSensorsWanted = false;
 
     // Latest readings (real sensors; the demo writes the same fields)
@@ -83,6 +85,8 @@ private:
         float  distTotal  = 0.0f;   ///< cumulative GPS distance (real sensor)
         float  distStep   = 0.0f;   ///< since the last processed second
         bool   hadFix     = false;  ///< any fix since the GUI started
+        uint8_t hr        = 0;      ///< bpm, 0 = no reading
+        uint32_t hrMs     = 0;      ///< when it was read (kernel ms)
     } mIn;
     float   mLastDistTotal = -1.0f;
     float   mBatteryPct    = 0.0f;
@@ -96,6 +100,8 @@ private:
     Ski::SkiDaySim  mSim;
     Ski::RunTracker mTracker;
     Ski::StormWatch mStorm;
+    Ski::HeartRateLog mHrLog;
+    float           mDemoHr = 0.0f;
     Ski::DayLog     mLog;
     ActivityWriter  mWriter;
     bool            mSaved = false;
@@ -123,6 +129,7 @@ private:
     void connectSensors(bool day);
     void disconnectSensors();
     void handleSensors(uint16_t handle, SDK::Sensor::DataBatch& data);
+    uint8_t currentHr() const;
 
     // -- Commands -------------------------------------------------------------
     void startDay();

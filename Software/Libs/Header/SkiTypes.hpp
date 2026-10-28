@@ -120,6 +120,7 @@ struct LiveData {
     LiftInfo   lift;               ///< the open lift (number 0 if none)
     TotalsInfo totals;
     StormInfo  storm;
+    uint8_t    heartRate = 0;      ///< bpm, 0 = no reading
 };
 
 enum class EventKind : uint8_t {
@@ -180,6 +181,8 @@ struct DayLog {
     uint8_t    sport     = 0;
     uint8_t    demo      = 0;
     uint8_t    saved     = 0;
+    uint8_t    hrAvg     = 0;   ///< bpm over the day, 0 = no readings
+    uint8_t    hrMax     = 0;
     uint16_t   startMin  = 0;   ///< local minute the day started
     uint16_t   endMin    = 0;
     RunInfo    runs[kMaxRuns];

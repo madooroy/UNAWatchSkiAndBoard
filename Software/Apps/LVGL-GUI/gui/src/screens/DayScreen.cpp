@@ -420,7 +420,11 @@ void DayScreen::refreshClock()
         std::snprintf(line, sizeof(line), "--");
     }
     lv_label_set_text(mCAlt, line);
-    std::snprintf(line, sizeof(line), "Battery %u%%", L.battery);
+    if (L.heartRate) {
+        std::snprintf(line, sizeof(line), "Battery %u%%%s%u bpm", L.battery, kDot, L.heartRate);
+    } else {
+        std::snprintf(line, sizeof(line), "Battery %u%%", L.battery);
+    }
     lv_label_set_text(mCBatt, line);
     lv_obj_set_style_text_color(mCBatt, Draw::rgb(L.battery && L.battery <= 20 ? Theme::kWarn : Theme::kTextDim),
                                 LV_PART_MAIN);

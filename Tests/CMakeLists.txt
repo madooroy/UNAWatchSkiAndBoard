@@ -33,11 +33,13 @@ add_executable(ski-tests
     StormWatch_test.cpp
     SkiDay_test.cpp
     SkiTypes_test.cpp
+    HeartRateLog_test.cpp
 
     "${APP_LIBS}/Sources/Ski/RunTracker.cpp"
     "${APP_LIBS}/Sources/Ski/StormWatch.cpp"
     "${APP_LIBS}/Sources/Ski/SkiDaySim.cpp"
     "${APP_LIBS}/Sources/Ski/Format.cpp"
+    "${APP_LIBS}/Sources/Ski/HeartRateLog.cpp"
     "${APP_LIBS}/Sources/SkiTypes.cpp"
 )
 

@@ -20,6 +20,7 @@
 #include "SDK/SensorLayer/DataParsers/SensorDataParserGpsDistance.hpp"
 #include "SDK/SensorLayer/DataParsers/SensorDataParserGpsLocation.hpp"
 #include "SDK/SensorLayer/DataParsers/SensorDataParserGpsSpeed.hpp"
+#include "SDK/SensorLayer/DataParsers/SensorDataParserHeartRate.hpp"
 #include "SDK/SensorLayer/DataParsers/SensorDataParserPressure.hpp"
 #include "SDK/SensorLayer/DataParsers/SensorDataParserWristMotion.hpp"
 
@@ -179,6 +180,7 @@ Service::Service(SDK::Kernel& kernel)
     , mBatteryLevel(SDK::Sensor::Type::BATTERY_LEVEL)
     , mBatteryMetrics(SDK::Sensor::Type::BATTERY_METRICS, 60000, 60000)
     , mWristMotion(SDK::Sensor::Type::WRIST_MOTION)
+    , mHeartRate(SDK::Sensor::Type::HEART_RATE, kSamplePeriodMs, 2 * kSamplePeriodMs)
     , mWriter(kernel, "Activity")
 {
     mTracker.setListener(this);
@@ -318,6 +320,7 @@ void Service::connectSensors(bool day)
         if (!mGpsDistance.isConnected())    { mGpsDistance.connect(); }
         if (!mPressure.isConnected())       { mPressure.connect(); }
         if (!mBatteryMetrics.isConnected()) { mBatteryMetrics.connect(); }
+        if (!mHeartRate.isConnected())      { mHeartRate.connect(); }
     }
 }
 
@@ -330,6 +333,7 @@ void Service::disconnectSensors()
     mPressure.disconnect();
     mBatteryLevel.disconnect();
     mBatteryMetrics.disconnect();
+    mHeartRate.disconnect();
 }
 
 void Service::handleSensors(uint16_t handle, SDK::Sensor::DataBatch& data)
@@ -391,6 +395,13 @@ void Service::handleSensors(uint16_t handle, SDK::Sensor::DataBatch& data)
         if (p.isDataValid()) {
             mBatteryVolt = p.getVoltage();
         }
+    } else if (mHeartRate.matchesDriver(handle)) {
+        SDK::SensorDataParser::HeartRate p(last);
+        const float bpm = p.isDataValid() ? p.getBpm() : 0.0f;
+        if (bpm >= 30.0f && bpm <= 240.0f && !mDemo) {
+            mIn.hr   = static_cast<uint8_t>(bpm + 0.5f);
+            mIn.hrMs = mKernel.sys.getTimeMs();
+        }
     } else if (mWristMotion.matchesDriver(handle)) {
         SDK::SensorDataParser::WristMotion p(last);
         if (p.isDataValid()) {
@@ -416,6 +427,8 @@ void Service::startDay()
 
     mTracker.reset();
     mStorm.reset();
+    mDemoHr = 0.0f;
+    mIn.hr  = 0;
     mStorm.setThreshold(mSettings.stormHpa);
     mLog.reset();
     gSpeedMedian.reset();
@@ -451,6 +464,7 @@ void Service::startDay()
     mLapKind          = LapKind::Idle;
     mLapStart         = mDayStartUtc;
     mSaved            = false;
+    mHrLog.reset(static_cast<uint32_t>(mDayStartUtc));
 
     mLog.sport    = mSettings.sport;
     mLog.demo     = mDemo ? 1 : 0;
@@ -582,6 +596,14 @@ void Service::tick()
                 mIn.seaLevelPa = o.seaLevelPa;
                 mIn.pressValid = true;
                 mIn.distStep   = o.dist;
+                // Demo heart rate: easy on lifts and in queues, up with speed
+                // on a run (the simulator's own sensor is random).
+                const float target = (o.speedValid && o.speed > 3.0f)
+                                         ? std::min(172.0f, 112.0f + 3.0f * o.speed)
+                                         : 86.0f;
+                mDemoHr  = mDemoHr > 0.0f ? mDemoHr + 0.06f * (target - mDemoHr) : 82.0f;
+                mIn.hr   = static_cast<uint8_t>(mDemoHr + 0.5f);
+                mIn.hrMs = mKernel.sys.getTimeMs();
                 mNowUtc        = mDemoUtc0 + o.t;
                 processSecond();
             }
@@ -625,6 +647,12 @@ void Service::tick()
     sendLive();
 }
 
+uint8_t Service::currentHr() const
+{
+    // A reading older than 5 s (sensor off the wrist, lost lock) is no reading.
+    return (mIn.hr && mKernel.sys.getTimeMs() - mIn.hrMs < 5000u) ? mIn.hr : 0;
+}
+
 float Service::displayAltitude(float baroAlt) const
 {
     return mAltOffsetValid ? baroAlt + mAltOffset : baroAlt;
@@ -657,6 +685,9 @@ void Service::processSecond()
     mTracker.add(s);
 
     gDisplaySpeed = mIn.speedValid ? gSpeedMedian.add(mIn.speed) : 0.0f;
+
+    const uint8_t hr = currentHr();
+    mHrLog.add(t, hr);
 
     mStorm.add(t, mIn.pressPa, mIn.pressValid, mIn.speed, mIn.speedValid, mIn.lat, mIn.lon, mIn.fix);
     if (mStorm.takeAlert()) {
@@ -701,6 +732,7 @@ void Service::processSecond()
         r.hasSpeed  = mIn.speedValid;
         r.speed     = gDisplaySpeed;
         r.motion    = static_cast<uint8_t>(mTracker.motion());
+        r.heartRate = hr;
         if (t - mLastBatteryLogT >= kBatteryLogS && mBatteryPct > 0.0f) {
             mLastBatteryLogT = t;
             r.hasBattery     = true;
@@ -715,10 +747,14 @@ void Service::processSecond()
 
 void Service::writeLap(LapKind kind, std::time_t start, std::time_t end, bool last)
 {
+    const Ski::HeartRateLog::Stats hr =
+        mHrLog.closeLap(static_cast<uint32_t>(start), static_cast<uint32_t>(end));
     if (!mWriter.active() || end <= start) {
         return;
     }
     ActivityWriter::LapData lap;
+    lap.hrAvg     = hr.avg;
+    lap.hrMax     = hr.max;
     lap.timeStart = start;
     lap.timestamp = end;
     lap.elapsedS  = static_cast<uint32_t>(end - start);
@@ -772,6 +808,8 @@ void Service::endDay(bool save)
             day.ascent    = d.liftVertical;
             day.descent   = d.vertical;
             day.runs      = d.runs;
+            day.hrAvg     = mHrLog.day().avg;
+            day.hrMax     = mHrLog.day().max;
             float moving  = 0.0f;
             for (uint8_t i = 0; i < mLog.count; ++i) {
                 if (mLog.runs[i].avgSpeedCms) {
@@ -792,6 +830,8 @@ void Service::endDay(bool save)
         }
     }
     mLog.saved = mSaved ? 1 : 0;
+    mLog.hrAvg = mHrLog.day().avg;
+    mLog.hrMax = mHrLog.day().max;
 
     if (save && !mDemo && d.totalTime > 0) {
         updateSeason();
@@ -950,6 +990,7 @@ void Service::sendLive()
 
     const Motion m = mTracker.motion();
     d.motion   = static_cast<uint8_t>(m);
+    d.heartRate = currentHr();
     d.todMin   = localMinute(mNowUtc);
     d.stillS   = static_cast<uint16_t>(std::min<uint32_t>(mTracker.stillSeconds(), 0xFFFF));
     d.speedCms = Ski::toCms(gDisplaySpeed);

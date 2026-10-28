@@ -154,7 +154,11 @@ void SummaryScreen::refreshOverview()
 
     Fmt::clock(a, sizeof(a), log.startMin, mModel.clock12h());
     Fmt::clock(b, sizeof(b), log.endMin, mModel.clock12h());
-    std::snprintf(line, sizeof(line), "%s - %s", a, b);
+    if (log.hrAvg) {
+        std::snprintf(line, sizeof(line), "%s - %s%sHR %u/%u", a, b, kDot, log.hrAvg, log.hrMax);
+    } else {
+        std::snprintf(line, sizeof(line), "%s - %s", a, b);
+    }
     lv_label_set_text(mOHours, line);
 }
 
