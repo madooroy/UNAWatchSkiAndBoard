@@ -225,7 +225,7 @@ cmake -S Tests -B build-tests && cmake --build build-tests && ctest --test-dir b
 1. Sign up at [apps.unawatch.com](https://apps.unawatch.com), click **Add New**,
    name it *Ski Day* and generate an **App ID**.
 2. Put that ID in `APP_ID` in `Software/Apps/SkiDay-CMake/CMakeLists.txt`
-   (it currently holds a locally generated placeholder).
+   (it now holds the store App ID, `DC480768426D7784`).
 3. Set `BUILD_VERSION` in the same file and run `UNA_SDK=... Tools/package.sh`.
    This builds and writes `Release/SkiDay_<version>_store.zip` (`.uapp`,
    `app-manifest.json`, icon and preview screenshots).
