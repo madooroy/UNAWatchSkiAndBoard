@@ -228,7 +228,9 @@ cmake -S Tests -B build-tests && cmake --build build-tests && ctest --test-dir b
    (it now holds the store App ID, `DC480768426D7784`).
 3. Set `BUILD_VERSION` in the same file and run `UNA_SDK=... Tools/package.sh`.
    This builds and writes `Release/SkiDay_<version>_store.zip` (`.uapp`,
-   `app-manifest.json`, icon and preview screenshots).
+   `app-manifest.json` and icon; the store accepts nothing else in the zip or the
+   manifest). Paste the description and add the screenshots from
+   `Docs/screenshots/store_*.png` on the app's page in the portal.
 4. On the app page: **Version → Upload New** → upload the zip → **Release** →
    **Confirm and Publish**.
 5. Submit the entry through the competition's [Google Form](https://forms.gle/MTWZYWsVgB6UvrxA7)

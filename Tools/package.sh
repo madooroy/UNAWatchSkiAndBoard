@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Build the watch app and pack the community-app-store upload:
-#   Output/SkiDay_<version>_store.zip = .uapp + app-manifest.json + icon.png + previews/
+#   Release/SkiDay_<version>_store.zip = .uapp + app-manifest.json + icon.png
 # Usage: UNA_SDK=/path/to/una-sdk Tools/package.sh
 set -euo pipefail
 ROOT=$(cd "$(dirname "$0")/.." && pwd)
@@ -19,8 +19,6 @@ APP_ID=$(sed -n 's/^set(APP_ID "\([0-9A-F]*\)").*/\1/p' "$CMAKE_DIR/CMakeLists.t
 STAGE=$(mktemp -d)
 cp "$UAPP" "$STAGE/"
 cp "$ROOT/Resources/icon.png" "$STAGE/icon.png"
-mkdir -p "$STAGE/previews"
-cp "$ROOT"/Docs/screenshots/store_*.png "$STAGE/previews/"
 
 # The flags below describe what the FIT file holds: a lap per run and per
 # lift ride, distance, the GPS track, elevation and speed (no heart rate or
@@ -32,11 +30,9 @@ cat > "$STAGE/app-manifest.json" <<JSON
   "name": "Ski Day",
   "icon": "icon.png",
   "binary": "$NAME",
-  "previews": "previews/",
   "appVersion": "$VERSION",
   "minKernelVersion": "1.4.0",
   "requiredHardware": ["GPS"],
-  "description": "A ski and snowboard day tracker. Just go ski: runs count themselves. The barometer tells lift rides from runs (even in a gondola with no GPS), and each run gets its vertical drop, distance, top and average speed and time, shown as a recap while you ride the next lift. The day adds up runs, total vertical, top speed and time skiing vs on lifts, with an altitude profile and a runs list at the end. Storm watch buzzes when the air pressure falls fast (3 hPa in 3 h by default), comparing only readings taken while you stand at the same spot, such as a lift queue, so skiing downhill is never mistaken for a storm. Records a FIT file (alpine skiing or snowboarding) with a lap per run and per lift. Buttons only, glove-friendly. Includes a demo day you can play at 1x, 10x or 60x.",
   "stravaExport": true,
   "id": "$APP_ID",
   "supportsLaps": true,
@@ -50,6 +46,19 @@ cat > "$STAGE/app-manifest.json" <<JSON
 }
 JSON
 python3 "$UNA_SDK/Utilities/Scripts/app_packer/min_kernel_version.py" --stamp "$STAGE/app-manifest.json"
+# The store rejects any manifest key it does not know ("must NOT have
+# additional properties"). Keep to the keys of the SDK's own sample manifests;
+# the description and screenshots are entered on the app's page in the portal.
+python3 - "$STAGE/app-manifest.json" <<'PY'
+import json, sys
+allowed = {"manifest_version", "type", "name", "icon", "binary", "appVersion", "minKernelVersion",
+           "requiredHardware", "stravaExport", "id", "supportsLaps", "supportsDistance",
+           "supportsTrack", "supportsHeartbeat", "supportsElevation", "supportsStep",
+           "supportsSpeed", "customMeasures", "configFields", "configFile"}
+extra = sorted(set(json.load(open(sys.argv[1]))) - allowed)
+if extra:
+    sys.exit(f"app-manifest.json has keys the store rejects: {extra}")
+PY
 
 mkdir -p "$ROOT/Release"
 ZIP="$ROOT/Release/SkiDay_${VERSION}_store.zip"
