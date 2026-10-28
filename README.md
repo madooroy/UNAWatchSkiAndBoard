@@ -13,11 +13,11 @@ Entry for the [UNA App Development Competition – October 2026](https://unawatc
 **Demo video (90 s):** [`Docs/SkiDay_demo.mp4`](Docs/SkiDay_demo.mp4), a whole
 simulated day in the simulator.
 
-**Ready-made build:** [`Release/SkiDay_1.0.0.uapp`](Release/SkiDay_1.0.0.uapp)
-(for sideloading by USB) and [`Release/SkiDay_1.0.0_store.zip`](Release/SkiDay_1.0.0_store.zip)
+**Ready-made build:** [`Release/SkiDay_1.0.1.uapp`](Release/SkiDay_1.0.1.uapp)
+(for sideloading by USB) and [`Release/SkiDay_1.0.1_store.zip`](Release/SkiDay_1.0.1_store.zip)
 (the community-store upload package).
 
-> **Status:** works in the UNA simulator and passes 49 host unit tests, but has
+> **Status:** works in the UNA simulator and passes 53 host unit tests, but has
 > **not yet been used on snow or on a UNA watch** (it is October). It has been
 > tested with the demo day below and with six real resort days recorded on
 > another watch: it counted the same number of runs as that watch on every
@@ -41,8 +41,10 @@ simulated day in the simulator.
   default; 2–4 hPa or off). See [how it avoids false alarms](#storm-watch).
 - **Imperial units** (mph, ft, mi, inHg, 12-hour clock) when the watch is set to
   imperial; metric otherwise.
+- **Heart rate** from the watch's sensor, every second, with average and max
+  for each run, each lift ride and the day (on the clock face and the summary).
 - **FIT file** with the sport set to alpine skiing or snowboarding, a lap per
-  run (active) and per lift ride (rest), GPS track, altitude and speed.
+  run (active) and per lift ride (rest), GPS track, altitude, speed and heart rate.
 - **Demo day:** a scripted day at a made-up resort, played through the real
   detection code at 1×, 10× or 60×. It is in Settings, so you can see the app
   at work in the simulator, or on a watch in October.
@@ -67,7 +69,7 @@ a banner or the storm warning.
 | Live | **Skiing:** speed, drop so far, distance and time of this run. **On a lift:** the run you just did, plus altitude and climb rate. **Stopped:** the last run |
 | Day | Runs, vertical, top speed, distance, and a ski / lift / stopped bar |
 | Storm watch | Pressure trend in hPa per 3 h with a sparkline, Rising / Steady / Falling / Storm coming |
-| Clock | Time, altitude, battery, GPS |
+| Clock | Time, altitude, battery, heart rate, GPS |
 
 **Summary:** totals, the day's profile (runs white, lifts blue) and the runs
 list (L1/L2 scroll; the best run is starred). R1 or R2 goes home.
