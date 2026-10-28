@@ -33,6 +33,7 @@ cat > "$STAGE/app-manifest.json" <<JSON
   "appVersion": "$VERSION",
   "minKernelVersion": "1.4.0",
   "requiredHardware": ["GPS"],
+  "description": "A ski and snowboard tracker. Just go ski: runs count themselves. The barometer tells lift rides from runs, even in a gondola with no GPS, and each run gets its vertical drop, distance, top and average speed and time, shown as a recap while you ride the next lift. The day adds up runs, total vertical, top speed and time skiing vs on lifts, with an altitude profile and a list of every run at the end. Storm watch buzzes when the air pressure falls fast, comparing only readings taken while you stand at the same spot, such as a lift queue, so skiing downhill is never mistaken for a storm. Records a FIT file with a lap per run and per lift. Buttons only, glove-friendly.",
   "stravaExport": true,
   "id": "$APP_ID",
   "supportsLaps": true,
@@ -46,18 +47,21 @@ cat > "$STAGE/app-manifest.json" <<JSON
 }
 JSON
 python3 "$UNA_SDK/Utilities/Scripts/app_packer/min_kernel_version.py" --stamp "$STAGE/app-manifest.json"
-# The store rejects any manifest key it does not know ("must NOT have
-# additional properties"). Keep to the keys of the SDK's own sample manifests;
-# the description and screenshots are entered on the app's page in the portal.
+# Checked against the store's own errors (Oct 2026): it requires
+# manifest_version, minKernelVersion and description, and rejects any key it
+# does not know, including the "previews" the SDK docs show. Screenshots are
+# added on the app's page in the portal.
 python3 - "$STAGE/app-manifest.json" <<'PY'
 import json, sys
 allowed = {"manifest_version", "type", "name", "icon", "binary", "appVersion", "minKernelVersion",
-           "requiredHardware", "stravaExport", "id", "supportsLaps", "supportsDistance",
+           "requiredHardware", "description", "stravaExport", "id", "supportsLaps", "supportsDistance",
            "supportsTrack", "supportsHeartbeat", "supportsElevation", "supportsStep",
            "supportsSpeed", "customMeasures", "configFields", "configFile"}
-extra = sorted(set(json.load(open(sys.argv[1]))) - allowed)
-if extra:
-    sys.exit(f"app-manifest.json has keys the store rejects: {extra}")
+required = {"manifest_version", "minKernelVersion", "description"}
+m = json.load(open(sys.argv[1]))
+extra, missing = sorted(set(m) - allowed), sorted(required - set(m))
+if extra or missing:
+    sys.exit(f"app-manifest.json: the store rejects {extra} and requires {missing}")
 PY
 
 mkdir -p "$ROOT/Release"
